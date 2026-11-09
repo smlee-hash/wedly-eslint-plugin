@@ -1,0 +1,42 @@
+{
+  "name": "@wedly/eslint-plugin",
+  "version": "0.1.0",
+  "description": "WEDLY 모든 앱 공용 ESLint 규칙 — 검사 끄기 주석 이유·약한 시험 확인·이중 타입 단언·공용 꾸러미 안쪽 가져오기·console.log",
+  "private": false,
+  "license": "UNLICENSED",
+  "main": "./index.cjs",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.cjs"
+    },
+    "./probe": {
+      "import": "./probe.mjs",
+      "require": "./probe.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.cjs",
+    "index.mjs",
+    "probe.cjs",
+    "probe.mjs",
+    "rules",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "peerDependencies": {
+    "eslint": ">=8.57.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "8.57.1",
+    "eslint": "9.39.4",
+    "eslint8": "npm:eslint@8.57.1",
+    "typescript": "5.9.3"
+  }
+}
