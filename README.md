@@ -104,9 +104,10 @@ describe("공용 린트 규칙이 이 앱 빌드에 연결돼 있다", () => {
 
 - 두 경로는 앱 설정이 린트하는 곳이어야 해요. 파일이 실제로 없어도 되고, 파일은 쓰지 않아요(글을 직접 넘겨 린트해요).
 - 규칙 다섯 개(`require-disable-reason`·`no-shared-deep-import`·`no-double-cast`·`no-weak-assertion`·`no-console`)를 이 차례로 한 줄씩 돌려줘요. `no-console` 을 뺀 앱은 `console: false` 를 넘기세요.
-- 각 줄은 `{ rule, file, caught, ignored, found, error }` 예요.
-  - `caught`: 그 규칙이 오류(severity 2)로 걸렸는가. 경고(warn)는 빌드를 막지 못해서 걸린 것으로 세지 않아요.
+- 각 줄은 `{ rule, file, caught, ignored, copy, found, error }` 예요.
+  - `caught`: 이 꾸러미의 규칙(이름만 같은 규칙이 아니라 이 꾸러미가 내놓은 규칙)이 오류(severity 2)로 걸렸는가. 경고(warn)는 빌드를 막지 못해서 걸린 것으로 세지 않아요.
   - `ignored`: 앱 설정이 그 파일을 무시하는가. 무시하면 린트하지 않고 `caught` 는 거짓이에요.
+  - `copy`: 같은 키(`wedly`)로 앱이 자기 사본 규칙을 등록해 걸린 경우 참이에요. 이름이 같아도 이 꾸러미의 규칙이 아니면 `caught` 는 거짓이에요 — 앱이 공용 꾸러미로 정말 바꿨는지를 확인하려는 거예요.
   - `found`: 그 글에서 오류로 나온 규칙 이름들. 다른 키(`local/no-double-cast` 등)로 등록한 같은 이름 규칙은 공용 규칙으로 세지 않아요.
   - `error`: 시험 글이 문법 오류로 읽히면 그 메시지, 아니면 `null`.
 - 앱이 규칙을 끄거나 경고로 낮추거나 확인 파일을 무시하면 해당 줄의 `caught` 가 거짓이 되어 시험이 실패해요. ESLint 8(.eslintrc) 앱의 `@wedly/…` 규칙 이름도 걸린 것으로 세어 줘요.

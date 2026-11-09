@@ -5,12 +5,15 @@
   "private": false,
   "license": "UNLICENSED",
   "main": "./index.cjs",
+  "types": "./index.d.ts",
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "import": "./index.mjs",
       "require": "./index.cjs"
     },
     "./probe": {
+      "types": "./probe.d.ts",
       "import": "./probe.mjs",
       "require": "./probe.cjs"
     },
@@ -19,8 +22,10 @@
   "files": [
     "index.cjs",
     "index.mjs",
+    "index.d.ts",
     "probe.cjs",
     "probe.mjs",
+    "probe.d.ts",
     "rules",
     "README.md"
   ],

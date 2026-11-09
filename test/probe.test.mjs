@@ -37,6 +37,7 @@ describe("probe", () => {
     for (const r of results) {
       assert.equal(r.caught, true, `${r.rule} 이 안 걸림: ${JSON.stringify(r)}`);
       assert.equal(r.ignored, false, r.rule);
+      assert.equal(r.copy, false, r.rule);
     }
     const rows = byRule(results);
     assert.equal(rows["no-double-cast"].file, "src/lib/wedly-probe.ts");
@@ -74,14 +75,36 @@ describe("probe", () => {
       baseConfig: { ...plugin.configs["legacy-recommended"], parser: "@typescript-eslint/parser" },
     });
     const results = await probe(eslint, FILES);
-    assert.deepEqual(results.map((r) => [r.rule, r.caught]), ALL.map((rule) => [rule, true]));
+    assert.deepEqual(results.map((r) => [r.rule, r.caught, r.copy]), ALL.map((rule) => [rule, true, false]));
     assert.deepEqual(byRule(results)["no-double-cast"].found, ["@wedly/no-double-cast"]);
+  });
+
+  it("앱이 같은 wedly 키로 자기 사본 규칙을 등록하면 걸린 것으로 세지 않고 copy 를 참으로 남긴다", async () => {
+    // 규칙 본문은 같고 meta 만 새 객체 — 앱 폴더에 규칙 파일을 베껴 둔 경우와 같다
+    const copy = {
+      meta: { name: "wedly" },
+      rules: Object.fromEntries(Object.entries(plugin.rules).map(([name, rule]) => [name, { meta: { ...rule.meta }, create: rule.create }])),
+    };
+    const local = [
+      { files: ["**/*.ts"], plugins: { wedly: copy }, rules: { "wedly/require-disable-reason": "error", "wedly/no-shared-deep-import": "error", "wedly/no-double-cast": "error", "wedly/no-weak-assertion": "error" } },
+      { files: ["**/*.ts"], ignores: ["**/*.test.ts"], rules: { "no-console": ["error", { allow: ["warn", "error"] }] } },
+    ];
+    const results = byRule(await probe(flat(local), FILES));
+    for (const rule of ALL.slice(0, 4)) {
+      assert.equal(results[rule].caught, false, `${rule} 사본이 공용 규칙으로 셈: ${JSON.stringify(results[rule])}`);
+      assert.equal(results[rule].copy, true, rule);
+      assert.deepEqual(results[rule].found.includes(`wedly/${rule}`), true, rule);
+    }
+    // no-console 은 ESLint 기본 규칙이라 사본이 있을 수 없다
+    assert.equal(results["no-console"].caught, true);
+    assert.equal(results["no-console"].copy, false);
   });
 
   it("다른 키로 등록한 같은 이름 규칙은 공용 규칙으로 세지 않는다", async () => {
     const other = { rules: plugin.rules };
     const results = byRule(await probe(flat([{ files: ["**/*.ts"], plugins: { local: other }, rules: { "local/no-double-cast": "error" } }]), FILES));
     assert.equal(results["no-double-cast"].caught, false);
+    assert.equal(results["no-double-cast"].copy, false);
     assert.deepEqual(results["no-double-cast"].found, ["local/no-double-cast"]);
   });
 });
