@@ -66,7 +66,7 @@ declare namespace plugin {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare -- 같은 이름의 namespace 와 값을 합쳐 export = 로 타입도 함께 내는 TypeScript 선언 병합이다
+// 같은 이름의 namespace 와 값을 합쳐 export = 로 타입도 함께 내는 TypeScript 선언 병합이다
 declare const plugin: plugin.WedlyPlugin;
 
 export = plugin;

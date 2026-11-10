@@ -33,7 +33,9 @@
     "node": ">=18.18"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "npm run lint && node --test \"test/*.test.mjs\"",
+    "lint": "eslint --pass-on-unpruned-suppressions --quiet",
+    "lint:prune": "eslint --prune-suppressions"
   },
   "peerDependencies": {
     "eslint": ">=8.57.0"
