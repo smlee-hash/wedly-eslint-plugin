@@ -1,4 +1,4 @@
-// WEDLY 모든 앱이 함께 쓰는 ESLint 플러그인 — 규칙 넷과, 앱 설정에 펼쳐 쓰는 묶음(preset)을 한 객체로 낸다.
+// WEDLY 모든 앱이 함께 쓰는 ESLint 플러그인 — 규칙 다섯과, 앱 설정에 펼쳐 쓰는 묶음(preset)을 한 객체로 낸다.
 //
 // ★ flat 묶음은 플러그인을 반드시 `wedly` 라는 키로 등록한다. 앱의 동결 목록(eslint-suppressions.json)이 파일마다
 //   규칙 이름(wedly/…)별 개수를 세기 때문에, 키가 바뀌면 동결해 둔 위반이 한꺼번에 새 위반이 된다.
@@ -9,6 +9,7 @@
 const noDoubleCast = require("./rules/no-double-cast.cjs");
 const noSharedDeepImport = require("./rules/no-shared-deep-import.cjs");
 const noWeakAssertion = require("./rules/no-weak-assertion.cjs");
+const requireDisableExpiry = require("./rules/require-disable-expiry.cjs");
 const requireDisableReason = require("./rules/require-disable-reason.cjs");
 
 const DEFAULT_CODE = ["**/*.{ts,tsx,js,jsx,mjs,cjs}"];
@@ -33,12 +34,13 @@ function preset(options = {}) {
 
   const blocks = [
     {
-      // 모든 코드 파일(시험 포함): 검사를 끄는 주석에 이유 + 공용 패키지(@wedly/*) 안쪽 파일 가져오기 금지.
+      // 모든 코드 파일(시험 포함): 검사를 끄는 주석에 이유·만료·승인자 + 공용 패키지(@wedly/*) 안쪽 파일 가져오기 금지.
       name: "wedly/code",
       files: [...code],
       plugins: { wedly: plugin },
       rules: {
         "wedly/require-disable-reason": "error",
+        "wedly/require-disable-expiry": "error",
         "wedly/no-shared-deep-import": "error",
       },
     },
@@ -76,6 +78,7 @@ const plugin = {
   meta: { name: "@wedly/eslint-plugin", version: require("./package.json").version },
   rules: {
     "require-disable-reason": requireDisableReason,
+    "require-disable-expiry": requireDisableExpiry,
     "no-weak-assertion": noWeakAssertion,
     "no-double-cast": noDoubleCast,
     "no-shared-deep-import": noSharedDeepImport,
@@ -95,6 +98,7 @@ plugin.configs["legacy-recommended"] = {
       files: [...LEGACY_CODE],
       rules: {
         "@wedly/require-disable-reason": "error",
+        "@wedly/require-disable-expiry": "error",
         "@wedly/no-shared-deep-import": "error",
       },
     },
