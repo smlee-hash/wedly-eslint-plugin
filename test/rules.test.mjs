@@ -257,6 +257,8 @@ reasonTester.run("require-disable-expiry", requireDisableExpiry, {
     // 이미 지난 날짜도 막지 않는다 — 날짜만 지나도 바뀐 것 없는 빌드가 깨지면 안 된다
     통과("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2020-01-31, 승인 이상민)\nconsole.log(1);"),
     통과(승인주석(날뒤(364))),
+    // 경계: 366일째까지 통과, 367일째부터 tooFar
+    통과(승인주석(날뒤(366))),
     통과("export const el = <div>{/* eslint-disable-next-line no-console -- 마운트 때 한 번만 (만료 2026-12-31, 승인 이상민) */}<b /></div>;", "rule.tsx"),
     // 다시 켜는 주석·지시문이 아닌 주석
     통과("/* eslint-enable no-console */\nexport const a = 1;"),
@@ -278,6 +280,7 @@ reasonTester.run("require-disable-expiry", requireDisableExpiry, {
     승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-13-01, 승인 이상민)\nconsole.log(1);", "badDate"),
     // 1년보다 먼 날짜는 영구로 끄는 것과 같다
     승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2099-12-31, 승인 이상민)\nconsole.log(1);", "tooFar"),
+    승인없음(승인주석(날뒤(367)), "tooFar"),
     승인없음(승인주석(날뒤(368)), "tooFar"),
     승인없음("export const el = <div>{/* eslint-disable-next-line no-console -- 마운트 때 한 번만 */}<b /></div>;", "approvalRequired", "rule.tsx"),
   ],

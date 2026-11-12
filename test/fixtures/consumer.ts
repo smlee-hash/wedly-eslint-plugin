@@ -4,7 +4,7 @@
 import { ESLint } from "eslint";
 import wedly from "@wedly/eslint-plugin";
 import { probe, PROBE_RULES } from "@wedly/eslint-plugin/probe";
-import type { ProbeResult } from "@wedly/eslint-plugin/probe";
+import type { ProbeResult, ProbeRule } from "@wedly/eslint-plugin/probe";
 
 const blocks = wedly.preset({ code: ["src/**/*.ts"], typescript: ["src/**/*.ts"], tests: ["**/*.test.ts"], console: false });
 const names: string[] = blocks.map((block) => block.name);
@@ -12,12 +12,21 @@ const recommended: number = wedly.configs.recommended.length;
 const legacyPlugins: string[] = wedly.configs["legacy-recommended"].plugins;
 const version: string = wedly.meta.version;
 const ruleCount: number = Object.keys(wedly.rules).length;
+// 타입의 규칙 이름이 아래 여섯 개와 꼭 같다(probe.cjs PROBE_RULES 와 같은 목록) — 하나가 빠지거나 더 있으면 타입 오류다.
+const probeRules: Record<ProbeRule, true> = {
+  "require-disable-reason": true,
+  "require-disable-expiry": true,
+  "no-shared-deep-import": true,
+  "no-double-cast": true,
+  "no-weak-assertion": true,
+  "no-console": true,
+};
 
 export async function check(): Promise<boolean> {
   const rows: ProbeResult[] = await probe(new ESLint({ cwd: "." }), { cwd: ".", code: "a.ts", test: "a.test.ts" });
   const first: string = PROBE_RULES[0];
   const okRows = rows.every((row) => row.caught && !row.copy && !row.ignored && row.error === null && row.found.length >= 0 && row.file.length > 0);
-  return okRows && first.length + names.length + recommended + legacyPlugins.length + version.length + ruleCount > 0;
+  return okRows && first.length + names.length + recommended + legacyPlugins.length + version.length + ruleCount + Object.keys(probeRules).length > 0;
 }
 
 export async function wrong(): Promise<void> {

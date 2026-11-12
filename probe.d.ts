@@ -1,6 +1,6 @@
 // 앱별 확인(probe)의 타입 — probe.cjs 가 내는 probe 와 PROBE_RULES 모양 그대로다. eslint 를 가져오지 않아 ESLint 8·9 앱 모두 쓴다.
 
-export type ProbeRule = "require-disable-reason" | "no-shared-deep-import" | "no-double-cast" | "no-weak-assertion" | "no-console";
+export type ProbeRule = "require-disable-reason" | "require-disable-expiry" | "no-shared-deep-import" | "no-double-cast" | "no-weak-assertion" | "no-console";
 
 export interface ProbeResult {
   rule: ProbeRule;
