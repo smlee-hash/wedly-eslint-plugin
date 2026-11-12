@@ -1,7 +1,7 @@
 {
   "name": "@wedly/eslint-plugin",
-  "version": "0.1.0",
-  "description": "WEDLY 모든 앱 공용 ESLint 규칙 — 검사 끄기 주석 이유·약한 시험 확인·이중 타입 단언·공용 꾸러미 안쪽 가져오기·console.log",
+  "version": "0.2.0",
+  "description": "WEDLY 모든 앱 공용 ESLint 규칙 — 검사 끄기 주석 이유·만료·승인자·약한 시험 확인·이중 타입 단언·공용 꾸러미 안쪽 가져오기·console.log",
   "private": false,
   "license": "UNLICENSED",
   "main": "./index.cjs",

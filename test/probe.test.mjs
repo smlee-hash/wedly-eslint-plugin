@@ -16,22 +16,24 @@ const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TS = { languageOptions: { parser: tsParser } };
 const FILES = { cwd: ROOT, code: "src/lib/wedly-probe.ts", test: "src/lib/wedly-probe.test.ts" };
-const ALL = ["require-disable-reason", "no-shared-deep-import", "no-double-cast", "no-weak-assertion", "no-console"];
+const ALL = ["require-disable-reason", "require-disable-expiry", "no-shared-deep-import", "no-double-cast", "no-weak-assertion", "no-console"];
 
 function flat(config) {
   return new ESLint({ cwd: ROOT, overrideConfigFile: true, overrideConfig: [TS, ...config] });
 }
 
 const byRule = (results) => Object.fromEntries(results.map((r) => [r.rule, r]));
+// no-console 을 뺀 이 꾸러미의 규칙들
+const OWN = ALL.filter((rule) => rule !== "no-console");
 
 describe("probe", () => {
-  it("가져오는 길: require 와 import 가 같은 함수를 주고, 규칙 다섯 개를 정해진 차례로 갖는다", () => {
+  it("가져오는 길: require 와 import 가 같은 함수를 주고, 규칙 여섯 개를 정해진 차례로 갖는다", () => {
     const viaRequire = require("@wedly/eslint-plugin/probe");
     assert.equal(viaRequire.probe, probe);
     assert.deepEqual(PROBE_RULES, ALL);
   });
 
-  it("공용 묶음을 그대로 펼친 설정이면 다섯 규칙이 모두 걸린다", async () => {
+  it("공용 묶음을 그대로 펼친 설정이면 여섯 규칙이 모두 걸린다", async () => {
     const results = await probe(flat(plugin.configs.recommended), FILES);
     assert.deepEqual(results.map((r) => r.rule), ALL);
     for (const r of results) {
@@ -43,6 +45,8 @@ describe("probe", () => {
     assert.equal(rows["no-double-cast"].file, "src/lib/wedly-probe.ts");
     assert.equal(rows["no-weak-assertion"].file, "src/lib/wedly-probe.test.ts");
     assert.deepEqual(rows["no-double-cast"].found, ["wedly/no-double-cast"]);
+    // 만료 확인 글은 이유가 있어 이유 규칙에는 걸리지 않는다
+    assert.deepEqual(rows["require-disable-expiry"].found, ["wedly/require-disable-expiry"]);
   });
 
   it("앱이 규칙 하나를 끄거나 경고로 낮추면 그 규칙만 안 걸린 것으로 나온다", async () => {
@@ -63,7 +67,7 @@ describe("probe", () => {
 
   it("console: false 면 no-console 을 보지 않는다", async () => {
     const results = await probe(flat(plugin.preset({ console: false })), { ...FILES, console: false });
-    assert.deepEqual(results.map((r) => r.rule), ALL.slice(0, 4));
+    assert.deepEqual(results.map((r) => r.rule), OWN);
     assert.ok(results.every((r) => r.caught));
   });
 
@@ -86,11 +90,11 @@ describe("probe", () => {
       rules: Object.fromEntries(Object.entries(plugin.rules).map(([name, rule]) => [name, { meta: { ...rule.meta }, create: rule.create }])),
     };
     const local = [
-      { files: ["**/*.ts"], plugins: { wedly: copy }, rules: { "wedly/require-disable-reason": "error", "wedly/no-shared-deep-import": "error", "wedly/no-double-cast": "error", "wedly/no-weak-assertion": "error" } },
+      { files: ["**/*.ts"], plugins: { wedly: copy }, rules: { "wedly/require-disable-reason": "error", "wedly/require-disable-expiry": "error", "wedly/no-shared-deep-import": "error", "wedly/no-double-cast": "error", "wedly/no-weak-assertion": "error" } },
       { files: ["**/*.ts"], ignores: ["**/*.test.ts"], rules: { "no-console": ["error", { allow: ["warn", "error"] }] } },
     ];
     const results = byRule(await probe(flat(local), FILES));
-    for (const rule of ALL.slice(0, 4)) {
+    for (const rule of OWN) {
       assert.equal(results[rule].caught, false, `${rule} 사본이 공용 규칙으로 셈: ${JSON.stringify(results[rule])}`);
       assert.equal(results[rule].copy, true, rule);
       assert.deepEqual(results[rule].found.includes(`wedly/${rule}`), true, rule);

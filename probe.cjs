@@ -9,11 +9,13 @@ const path = require("node:path");
 // 앱의 ESLint 가 꾸러미를 불러올 때 쓴 것과 같은 CommonJS 모듈 — 규칙의 meta 객체가 같은지로 이 꾸러미 규칙인지 가린다
 const { rules } = require("./index.cjs");
 
-const PROBE_RULES = ["require-disable-reason", "no-shared-deep-import", "no-double-cast", "no-weak-assertion", "no-console"];
+const PROBE_RULES = ["require-disable-reason", "require-disable-expiry", "no-shared-deep-import", "no-double-cast", "no-weak-assertion", "no-console"];
 
 // 규칙마다 일부러 틀린 글. on 은 어느 파일 이름으로 린트할지(code: 시험이 아닌 .ts, test: 시험 .ts)
 const CASES = {
   "require-disable-reason": { on: "code", text: "// eslint-disable-next-line no-debugger\ndebugger;\n" },
+  // 이유는 있고 만료·승인 괄호가 없다 — 이유 규칙은 지나가고 이 규칙만 걸린다
+  "require-disable-expiry": { on: "code", text: "// eslint-disable-next-line no-debugger -- 시작 알림이라 남긴다\ndebugger;\n" },
   "no-shared-deep-import": { on: "code", text: 'import { Thing } from "@wedly/ui-shared/src/thing";\nexport const t = Thing;\n' },
   "no-double-cast": { on: "code", text: "export const n = (globalThis as unknown as { n: number }).n;\n" },
   "no-weak-assertion": { on: "test", text: 'import { expect, it } from "vitest";\nit("x", () => {\n  expect(globalThis).toBeDefined();\n});\n' },

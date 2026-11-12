@@ -9,6 +9,7 @@ WEDLY 모든 앱(ERP·일루아·하이브·랩·공용 UI 꾸러미 …)이 함
 | 규칙 | 한 줄 설명 | 왜 |
 | --- | --- | --- |
 | `wedly/require-disable-reason` | `eslint-disable` 주석에 ` -- 이유`(공백 뺀 다섯 글자 이상)를 적게 해요 | 이유 없이 끈 주석은 왜 껐는지 몰라 지우지도 못하고, 같은 줄을 베낀 새 코드가 같은 실수를 들여와요 |
+| `wedly/require-disable-expiry` | `eslint-disable` 주석 끝에 `(만료 YYYY-MM-DD, 승인 이름)` 을 적게 해요(만료는 오늘에서 1년 안, 지난 날짜는 막지 않아요) | 언제까지 둘지, 누가 허락했는지 없는 예외는 영구로 남아요 |
 | `wedly/no-shared-deep-import` | `@wedly/*` 꾸러미의 `src`·`dist`·`node_modules` 안쪽 파일을 직접 가져오지 못하게 해요 | 꾸러미가 폴더를 바꾸면 그 꾸러미를 쓰는 앱이 운영에서만 깨져요 |
 | `wedly/no-double-cast` | `x as unknown as T` 같은 이중 타입 단언을 막아요 | 컴파일러의 검사를 통째로 꺼서, 모양이 틀린 값이 운영에서야 터져요 |
 | `wedly/no-weak-assertion` | 시험의 `toBeDefined()`·`toBeTruthy()`·인자 없는 `.not.toThrow()` 같은 약한 확인을 막아요 | 값이 무엇이든 통과해서 고장 난 코드도 초록불이 돼요 |
@@ -76,6 +77,7 @@ npx eslint --suppress-rule wedly/<규칙 이름>
 - 꼭 규칙을 지정하세요. `--suppress-all` 은 쓰지 않아요 — 다른 규칙의 새 위반까지 한꺼번에 묻어 버려요.
 - 동결한 결과는 앱의 `eslint-suppressions.json` 에 들어가요. 옛 위반을 고치면 `npx eslint --prune-suppressions` 로 목록을 줄여요.
 - ESLint 8 앱에는 `--suppress-rule` 이 없어요. 앱이 쓰는 자기 기준 파일(baseline)에 옛 위반을 적어 두세요.
+- `require-disable-expiry` 를 처음 받는 앱은 옛 끄기 주석 전부가 걸려요. `npx eslint --suppress-rule wedly/require-disable-expiry` 로 그 규칙만 동결하세요.
 
 ## 앱마다 확인하기(probe)
 
@@ -103,7 +105,7 @@ describe("공용 린트 규칙이 이 앱 빌드에 연결돼 있다", () => {
 ```
 
 - 두 경로는 앱 설정이 린트하는 곳이어야 해요. 파일이 실제로 없어도 되고, 파일은 쓰지 않아요(글을 직접 넘겨 린트해요).
-- 규칙 다섯 개(`require-disable-reason`·`no-shared-deep-import`·`no-double-cast`·`no-weak-assertion`·`no-console`)를 이 차례로 한 줄씩 돌려줘요. `no-console` 을 뺀 앱은 `console: false` 를 넘기세요.
+- 규칙 여섯 개(`require-disable-reason`·`require-disable-expiry`·`no-shared-deep-import`·`no-double-cast`·`no-weak-assertion`·`no-console`)를 이 차례로 한 줄씩 돌려줘요. `no-console` 을 뺀 앱은 `console: false` 를 넘기세요.
 - 각 줄은 `{ rule, file, caught, ignored, copy, found, error }` 예요.
   - `caught`: 이 꾸러미의 규칙(이름만 같은 규칙이 아니라 이 꾸러미가 내놓은 규칙)이 오류(severity 2)로 걸렸는가. 경고(warn)는 빌드를 막지 못해서 걸린 것으로 세지 않아요.
   - `ignored`: 앱 설정이 그 파일을 무시하는가. 무시하면 린트하지 않고 `caught` 는 거짓이에요.

@@ -19,6 +19,9 @@ const PROBES = {
   doubleCast: "export const n = (globalThis as unknown as { n: number }).n;\n",
   weak: 'import { expect, it } from "vitest";\nit("x", () => {\n  expect(globalThis).toBeDefined();\n});\n',
   noReason: "// eslint-disable-next-line no-debugger\ndebugger;\n",
+  // 이유는 있고 만료·승인 괄호가 없다
+  noApproval: "// eslint-disable-next-line no-debugger -- 시작 알림이라 남긴다\ndebugger;\n",
+  approved: "// eslint-disable-next-line no-debugger -- 시작 알림이라 남긴다 (만료 2020-01-31, 승인 이상민)\ndebugger;\n",
   deep: 'import { Thing } from "@wedly/ui-shared/src/thing";\nexport const t = Thing;\n',
   log: "console.log(1);\n",
   warn: "console.warn(1);\n",
@@ -28,8 +31,11 @@ async function ruleIds(eslint, code, file) {
   const [result] = await eslint.lintText(code, { filePath: path.join(ROOT, file) });
   const fatal = result.messages.find((m) => m.fatal);
   if (fatal) throw new Error(`시험 글이 문법 오류예요(${fatal.message}) ${file}`);
-  return result.messages.filter((m) => m.severity === 2).map((m) => m.ruleId);
+  return result.messages.filter((m) => m.severity === 2).map((m) => m.ruleId).sort();
 }
+
+// 이유 없는 끄기 주석은 만료·승인 괄호도 없어 두 규칙에 함께 걸린다
+const NO_REASON = (prefix) => [`${prefix}/require-disable-expiry`, `${prefix}/require-disable-reason`];
 
 function flat(config) {
   return new ESLint({ cwd: ROOT, overrideConfigFile: true, overrideConfig: [TS, ...config] });
@@ -42,9 +48,9 @@ describe("가져오는 길", () => {
     assert.equal(viaImport, plugin);
   });
 
-  it("규칙 다섯 가지 중 wedly 규칙 넷을 갖고 이름·판이 있다", () => {
+  it("규칙 여섯 가지 중 wedly 규칙 다섯을 갖고 이름·판이 있다", () => {
     assert.deepEqual(Object.keys(plugin.rules).sort(),
-      ["no-double-cast", "no-shared-deep-import", "no-weak-assertion", "require-disable-reason"]);
+      ["no-double-cast", "no-shared-deep-import", "no-weak-assertion", "require-disable-expiry", "require-disable-reason"]);
     assert.equal(plugin.meta.name, "@wedly/eslint-plugin");
     assert.equal(plugin.meta.version, require("../package.json").version);
   });
@@ -53,9 +59,11 @@ describe("가져오는 길", () => {
 describe("flat 묶음(ESLint 9 앱)", () => {
   const eslint = flat(plugin.configs.recommended);
 
-  it("시험이 아닌 코드: 이중 단언·이유 없는 끄기 주석·공용 꾸러미 안쪽 가져오기·console.log 가 자기 규칙 이름으로 걸린다", async () => {
+  it("시험이 아닌 코드: 이중 단언·이유 없는 끄기 주석·만료 없는 끄기 주석·공용 꾸러미 안쪽 가져오기·console.log 가 자기 규칙 이름으로 걸린다", async () => {
     assert.deepEqual(await ruleIds(eslint, PROBES.doubleCast, "src/lib/probe.ts"), ["wedly/no-double-cast"]);
-    assert.deepEqual(await ruleIds(eslint, PROBES.noReason, "src/lib/probe.ts"), ["wedly/require-disable-reason"]);
+    assert.deepEqual(await ruleIds(eslint, PROBES.noReason, "src/lib/probe.ts"), NO_REASON("wedly"));
+    assert.deepEqual(await ruleIds(eslint, PROBES.noApproval, "src/lib/probe.ts"), ["wedly/require-disable-expiry"]);
+    assert.deepEqual(await ruleIds(eslint, PROBES.approved, "src/lib/probe.ts"), []);
     assert.deepEqual(await ruleIds(eslint, PROBES.deep, "src/lib/probe.ts"), ["wedly/no-shared-deep-import"]);
     assert.deepEqual(await ruleIds(eslint, PROBES.log, "src/lib/probe.ts"), ["no-console"]);
     assert.deepEqual(await ruleIds(eslint, PROBES.warn, "src/lib/probe.ts"), []);
@@ -63,15 +71,16 @@ describe("flat 묶음(ESLint 9 앱)", () => {
 
   it("src 밖 폴더(app·lib·components)의 코드에도 기본으로 걸린다", async () => {
     assert.deepEqual(await ruleIds(eslint, PROBES.doubleCast, "app/page.tsx"), ["wedly/no-double-cast"]);
-    assert.deepEqual(await ruleIds(eslint, PROBES.noReason, "lib/probe.js"), ["wedly/require-disable-reason"]);
+    assert.deepEqual(await ruleIds(eslint, PROBES.noReason, "lib/probe.js"), NO_REASON("wedly"));
   });
 
-  it("시험 파일: 약한 확인과 끄기 주석 이유만 보고, 이중 단언·console.log 는 두다", async () => {
+  it("시험 파일: 약한 확인과 끄기 주석 이유·만료만 보고, 이중 단언·console.log 는 두다", async () => {
     for (const file of ["src/lib/probe.test.ts", "src/lib/__tests__/probe.tsx", "tests/probe.test.tsx"]) {
       assert.deepEqual(await ruleIds(eslint, PROBES.weak, file), ["wedly/no-weak-assertion"], file);
       assert.deepEqual(await ruleIds(eslint, PROBES.doubleCast, file), [], file);
       assert.deepEqual(await ruleIds(eslint, PROBES.log, file), [], file);
-      assert.deepEqual(await ruleIds(eslint, PROBES.noReason, file), ["wedly/require-disable-reason"], file);
+      assert.deepEqual(await ruleIds(eslint, PROBES.noReason, file), NO_REASON("wedly"), file);
+      assert.deepEqual(await ruleIds(eslint, PROBES.noApproval, file), ["wedly/require-disable-expiry"], file);
     }
   });
 
@@ -104,7 +113,8 @@ describe("legacy 묶음(ESLint 8 .eslintrc 앱)", () => {
 
   it("규칙 이름은 @wedly/… 이고 같은 파일 범위로 걸린다", async () => {
     assert.deepEqual(await ruleIds(eslint, PROBES.doubleCast, "app/probe.ts"), ["@wedly/no-double-cast"]);
-    assert.deepEqual(await ruleIds(eslint, PROBES.noReason, "lib/probe.ts"), ["@wedly/require-disable-reason"]);
+    assert.deepEqual(await ruleIds(eslint, PROBES.noReason, "lib/probe.ts"), NO_REASON("@wedly"));
+    assert.deepEqual(await ruleIds(eslint, PROBES.noApproval, "lib/probe.ts"), ["@wedly/require-disable-expiry"]);
     assert.deepEqual(await ruleIds(eslint, PROBES.deep, "components/probe.tsx"), ["@wedly/no-shared-deep-import"]);
     assert.deepEqual(await ruleIds(eslint, PROBES.log, "lib/probe.ts"), ["no-console"]);
     assert.deepEqual(await ruleIds(eslint, PROBES.weak, "lib/probe.test.ts"), ["@wedly/no-weak-assertion"]);

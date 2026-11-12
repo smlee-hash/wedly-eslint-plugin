@@ -1,4 +1,4 @@
-// 규칙 네 개를 ESLint RuleTester 로 하나씩 확인한다 — 어떤 모양을 지적하고 어떤 모양은 두는지만 본다.
+// 규칙 다섯 개를 ESLint RuleTester 로 하나씩 확인한다 — 어떤 모양을 지적하고 어떤 모양은 두는지만 본다.
 // 어느 파일에 걸리는지(묶음의 파일 범위)는 presets.test.mjs 가 본다.
 // 앞 세 규칙의 시험 글은 ERP src/lib/nav/lint-wedly-rules.test.ts(af94994)를 그대로 옮겼고,
 // 끄기 주석 이유 규칙은 ERP lint-pstack-rules.test.ts 「규칙 1」 의 글을 옮겼다.
@@ -15,6 +15,7 @@ const {
   "no-shared-deep-import": noSharedDeepImport,
   "no-weak-assertion": noWeakAssertion,
   "require-disable-reason": requireDisableReason,
+  "require-disable-expiry": requireDisableExpiry,
 } = plugin.rules;
 
 // RuleTester 가 node:test 의 describe·it 로 시험을 만들게 이어 준다
@@ -225,6 +226,60 @@ reasonTester.run("require-disable-reason", requireDisableReason, {
     이유없음("/* eslint-disable no-console -- 네글자요 */\nconsole.log(1);"),
     이유없음("// eslint-disable-next-line no-console -- 가 나 다 라\nconsole.log(1);"),
     이유없음("export const el = <div>{/* eslint-disable-next-line no-console */}<b /></div>;", "rule.tsx"),
+    // 끝의 만료·승인 괄호는 이유가 아니다 — 괄호만 적으면 이유가 없다
+    이유없음("// eslint-disable-next-line no-console -- (만료 2026-12-31, 승인 이상민)\nconsole.log(1);"),
+    이유없음("// eslint-disable-next-line no-console -- 짧음 (만료 2026-12-31, 승인 이상민)\nconsole.log(1);"),
+  ],
+});
+
+// 승인 괄호가 아닌 괄호는 이유의 일부라 그대로 센다 — 옛 주석의 글자 수가 바뀌어 동결 개수가 흔들리지 않게
+reasonTester.run("require-disable-reason — 괄호", requireDisableReason, {
+  valid: [
+    통과("// eslint-disable-next-line no-console -- (시작 알림)\nconsole.log(1);"),
+    통과("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-12-31, 승인 이상민)\nconsole.log(1);"),
+    통과("// eslint-disable-next-line no-console -- 승인 받은 화면만 (관리자)\nconsole.log(1);"),
+  ],
+  invalid: [],
+});
+
+const 승인없음 = (code, messageId = "approvalRequired", filename = FILE) => ({ code, filename, errors: [{ messageId }] });
+// 오늘에서 days 날 뒤의 날짜(UTC, YYYY-MM-DD) — 1년 경계는 시험을 돌리는 날 기준이다
+const 날뒤 = (days) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+const 승인주석 = (date) => `// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 ${date}, 승인 이상민)\nconsole.log(1);`;
+
+reasonTester.run("require-disable-expiry", requireDisableExpiry, {
+  valid: [
+    통과("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-12-31, 승인 이상민)\nconsole.log(1);"),
+    통과("console.log(1); // eslint-disable-line no-console -- 시작 알림이라 남긴다 (승인 이상민, 만료 2026-12-31)"),
+    통과("/* eslint-disable no-console -- 로그 도구라서 (만료: 2026-12-31 · 승인자: 이아영) */\nconsole.log(1);\n/* eslint-enable no-console */"),
+    // 전각 괄호·쉼표, 영어 이름도 받는다
+    통과("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다（만료 2026-12-31，승인 smlee）\nconsole.log(1);"),
+    // 이미 지난 날짜도 막지 않는다 — 날짜만 지나도 바뀐 것 없는 빌드가 깨지면 안 된다
+    통과("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2020-01-31, 승인 이상민)\nconsole.log(1);"),
+    통과(승인주석(날뒤(364))),
+    통과("export const el = <div>{/* eslint-disable-next-line no-console -- 마운트 때 한 번만 (만료 2026-12-31, 승인 이상민) */}<b /></div>;", "rule.tsx"),
+    // 다시 켜는 주석·지시문이 아닌 주석
+    통과("/* eslint-enable no-console */\nexport const a = 1;"),
+    통과("// 이 줄은 eslint-disable 을 설명할 뿐이다\nexport const a = 1;"),
+  ],
+  invalid: [
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다\nconsole.log(1);"),
+    승인없음("// eslint-disable-next-line no-console\nconsole.log(1);"),
+    승인없음("/* eslint-disable no-console */\nconsole.log(1);"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (관리자 화면)\nconsole.log(1);"),
+    // 괄호가 끝에 있지 않으면 승인 괄호가 아니다
+    승인없음("// eslint-disable-next-line no-console -- (만료 2026-12-31, 승인 이상민) 시작 알림\nconsole.log(1);"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (승인 이상민)\nconsole.log(1);", "expiryRequired"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026/12/31, 승인 이상민)\nconsole.log(1);", "expiryRequired"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-12-31)\nconsole.log(1);", "approverRequired"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-12-31, 승인)\nconsole.log(1);", "approverRequired"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-12-31, 승인 이)\nconsole.log(1);", "approverRequired"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-02-30, 승인 이상민)\nconsole.log(1);", "badDate"),
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2026-13-01, 승인 이상민)\nconsole.log(1);", "badDate"),
+    // 1년보다 먼 날짜는 영구로 끄는 것과 같다
+    승인없음("// eslint-disable-next-line no-console -- 시작 알림이라 남긴다 (만료 2099-12-31, 승인 이상민)\nconsole.log(1);", "tooFar"),
+    승인없음(승인주석(날뒤(368)), "tooFar"),
+    승인없음("export const el = <div>{/* eslint-disable-next-line no-console -- 마운트 때 한 번만 */}<b /></div>;", "approvalRequired", "rule.tsx"),
   ],
 });
 

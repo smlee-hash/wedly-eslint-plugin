@@ -53,6 +53,7 @@ declare namespace plugin {
     meta: { name: string; version: string };
     rules: {
       "require-disable-reason": RuleModule;
+      "require-disable-expiry": RuleModule;
       "no-weak-assertion": RuleModule;
       "no-double-cast": RuleModule;
       "no-shared-deep-import": RuleModule;
